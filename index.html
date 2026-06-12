@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name='description' content="导航">
+    <title>简单导航</title>
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <style>
+        /* 基础变量定义 - 明色主题 */
+        :root {
+            --bg-color: #f8fafc;
+            --container-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --hover-bg: #f1f5f9;
+            --accent-color: #3b82f6;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 暗色主题变量 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0f172a;
+                --container-bg: #1e293b;
+                --text-main: #f8fafc;
+                --text-muted: #94a3b8;
+                --border-color: #334155;
+                --hover-bg: #334155;
+                --accent-color: #60a5fa;
+                --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        /* 消除所有动画与过渡效果，确保低性能设备绝对流畅 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: none !important;
+            animation: none !important;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 40px 20px;
+            display: block;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 头部样式 */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        header p {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* 响应式网格布局 */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        /* 导航卡片样式 */
+        .nav-item {
+            display: block;
+            background-color: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-decoration: none;
+            box-shadow: var(--shadow);
+        }
+
+        .nav-item:hover, .nav-item:focus {
+            background-color: var(--hover-bg);
+            border-color: var(--accent-color);
+            outline: none;
+        }
+
+        .nav-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .nav-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 针对超小屏幕的微调 */
+        @media (max-width: 480px) {
+            body {
+                padding: 24px 16px;
+            }
+            header {
+                margin-bottom: 24px;
+            }
+            header h1 {
+                font-size: 24px;
+            }
+            .nav-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 12px;
+            }
+            .nav-item {
+                padding: 12px;
+            }
+            .nav-title {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>简单导航</h1>
+            <p>简约不凡的网站导航</p>
+        </header>
+
+        <main id="navContainer" class="nav-grid">
+            <!-- 导航按钮将通过 JavaScript 动态渲染到这里 -->
+        </main>
+    </div>
+
+    <script>
+        /**
+         * 导航数据配置数组
+         * * 说明：
+         * 每个对象代表一个导航按钮，包含以下三个属性：
+         * - name: 导航站点的名称
+         * - url: 站点的完整链接（需包含 http:// 或 https://）
+         * - desc: 站点的一句话简介（可选，若不需要留空字符串即可 ""）
+         */
+        const navData = [
+            { name: "百度", url: "https://www.baidu.com", desc: "中文综合搜索引擎" },
+            { name: "谷歌", url: "https://www.google.com", desc: "全球最大的搜索引擎" },
+
+            { name: "哔哩哔哩", url: "https://www.bilibili.com", desc: "年轻人的潮流文化社区" },
+            { name: "知乎", url: "https://www.zhihu.com", desc: "中文互联网高质量问答社区" },
+            { name: "豆瓣", url: "https://www.douban.com", desc: "提供图书、电影、音乐社区" },
+            { name: "V2EX", url: "https://v2ex.com", desc: "创意工作者们的社区" },
+
+            { name: "GitHub", url: "https://github.com", desc: "开源代码托管平台" }
+        ];
+
+        // 动态渲染导航卡片的方法
+        function renderNav() {
+            const container = document.getElementById('navContainer');
+            if (!container) return;
+
+            // 构造 HTML 字符串
+            let htmlStr = '';
+            for (let i = 0; i < navData.length; i++) {
+                const item = navData[i];
+                // 如果没有提供描述，则默认显示网址域名
+                const description = item.desc || item.url.replace(/^https?:\/\/(www\.)?/, '');
+                htmlStr += `
+                    <a href="${item.url}" class="nav-item" target="_blank" rel="noopener noreferrer">
+                        <div class="nav-title">${item.name}</div>
+                        <div class="nav-desc">${description}</div>
+                    </a>
+                `;
+            }
+            // 一次性渲染，减少 DOM 操作提高性能
+            container.innerHTML = htmlStr;
+        }
+
+        // 页面加载完成后立即执行渲染
+        document.addEventListener('DOMContentLoaded', renderNav);
+    </script>
+</body>
+</html>
+
