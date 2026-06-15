@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>P12/PFX 证书查看器</title>
+    <!-- 引入 Forge 库 (用于解析 PKCS#12) -->
+    <script src="https://registry.npmmirror.com/node-forge/1.3.1/files/dist/forge.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+            background: #f5f7fb;
+            color: #1e293b;
+            padding: 2rem 1.5rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        /* 页头 */
+        .header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1e3c72, #2b4c7c);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .header p {
+            color: #475569;
+            margin-top: 0.5rem;
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            background: #ffffff;
+            border: 2px dashed #cbd5e1;
+            border-radius: 28px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            margin-bottom: 2rem;
+        }
+
+        .upload-area:hover, .drag-over {
+            border-color: #3b82f6;
+            background-color: #f8fafd;
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .upload-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.6rem 1.8rem;
+            border-radius: 60px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 0.8rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .upload-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .file-hint {
+            font-size: 0.85rem;
+            color: #5b6e8c;
+            margin-top: 1rem;
+        }
+
+        /* 加载 & 错误提示 */
+        .message-area {
+            margin: 1rem 0 1.5rem 0;
+            padding: 0.8rem 1.2rem;
+            border-radius: 20px;
+            background: #f1f5f9;
+            font-size: 0.9rem;
+        }
+
+        .error-msg {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-left: 5px solid #ef4444;
+        }
+
+        .info-msg {
+            background: #e6f0ff;
+            color: #1e40af;
+        }
+
+        /* 展示卡片通用样式 */
+        .cert-section {
+            margin-top: 2rem;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            transition: all 0.2s;
+            border: 1px solid #e9eef3;
+        }
+
+        .card-header {
+            background: #f9fafc;
+            padding: 1.1rem 1.5rem;
+            border-bottom: 1px solid #eef2f8;
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .card-header i {
+            font-size: 1.3rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .detail-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #f0f2f5;
+            padding-bottom: 0.75rem;
+        }
+
+        .detail-label {
+            width: 170px;
+            font-weight: 600;
+            color: #334155;
+            flex-shrink: 0;
+        }
+
+        .detail-value {
+            flex: 1;
+            color: #1e293b;
+            word-break: break-word;
+            font-family: 'SF Mono', 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .pre-block {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        details {
+            margin-top: 0.5rem;
+            background: #fefce8;
+            border-radius: 16px;
+            padding: 0.5rem 1rem;
+        }
+
+        summary {
+            font-weight: 600;
+            cursor: pointer;
+            color: #4b5563;
+            padding: 0.3rem 0;
+        }
+
+        .extensions-list {
+            background: #f1f5f9;
+            border-radius: 16px;
+            padding: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .ext-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.85rem;
+        }
+
+        .badge {
+            background: #e2e8f0;
+            padding: 0.2rem 0.6rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-left: 0.75rem;
+        }
+
+        hr {
+            margin: 1rem 0;
+            border-color: #eef2f8;
+        }
+
+        @media (max-width: 700px) {
+            .detail-label {
+                width: 100%;
+                margin-bottom: 0.25rem;
+            }
+            .card-body {
+                padding: 1rem;
+            }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2.5rem;
+            font-size: 0.8rem;
+            color: #6c7a91;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📜 PKCS#12 证书阅读器</h1>
+        <p>解析 .p12 / .pfx 文件 | 展示证书、私钥、颁发者、序列号、有效期及全部扩展信息</p>
+    </div>
+
+    <!-- 上传区域 (点击 + 拖拽) -->
+    <div id="dropzone" class="upload-area">
+        <div class="upload-icon">📂🔐</div>
+        <div>将 .p12 或 .pfx 文件拖拽至此区域</div>
+        <div>或者</div>
+        <button id="fileSelectBtn" class="upload-btn">📁 选择证书文件</button>
+        <input type="file" id="fileInput" accept=".p12,.pfx,.P12,.PFX" style="display: none;">
+        <div class="file-hint">支持 PKCS#12 格式 (包含私钥+证书) , 若加密则会弹出密码输入框</div>
+    </div>
+
+    <div id="messageBox" class="message-area" style="display: none;"></div>
+
+    <!-- 展示内容区域 -->
+    <div id="resultArea" class="cert-section"></div>
+    <footer>⚡ 使用 Forge 解析</footer>
+</div>
+
+<script>
+    // ================== 中文乱码修复核心函数 ==================
+    // Forge 在解析 UTF8String 时错误地按 Latin-1 解码为 JS 字符串，
+    // 此函数将这种错误字符串重新按 UTF-8 解码，还原正确的中文/多字节字符。
+    function fixUtf8String(mangledStr) {
+        if (!mangledStr || typeof mangledStr !== 'string') return mangledStr || '';
+        // 将字符串视为每个字符的 charCode 在 0-255 之间的字节序列，
+        // 构建 Uint8Array，然后用 TextDecoder 真正按 UTF-8 解码。
+        try {
+            const bytes = new Uint8Array(mangledStr.length);
+            for (let i = 0; i < mangledStr.length; i++) {
+                const code = mangledStr.charCodeAt(i);
+                // 只取低字节 (0-255) 作为字节值
+                if (code > 0xFF) {
+                    // 如果已经出现 >255 的字符，说明可能是正常 Unicode 字符串（如现代浏览器内部已正确）
+                    // 但是为了安全，若已经存在正确的中文字符（Unicode > 255）则保持原样，避免二次破坏
+                    // 检查是否整个字符串普遍存在高码位，可能是正确的 UTF-16 字符串，无需修复
+                    // 简单判断：如果超过 30% 字符大于 255，则认为已经是正确 Unicode，直接返回原串
+                    let highCount = 0;
+                    for (let j = 0; j < mangledStr.length && j < 100; j++) {
+                        if (mangledStr.charCodeAt(j) > 0xFF) highCount++;
+                    }
+                    if (highCount > 5) return mangledStr; // 看起来已经是正确的宽字符
+                }
+                bytes[i] = code & 0xFF;
+            }
+            const decoder = new TextDecoder('utf-8');
+            const decoded = decoder.decode(bytes);
+            // 如果解码后包含明显的替换字符�，或者结果为空，则回退原串
+            if (decoded && !decoded.includes('\uFFFD')) {
+                return decoded;
+            }
+            return mangledStr;
+        } catch (e) {
+            return mangledStr;
+        }
+    }
+
+    // 专门用于处理 DN 中的属性值，确保中文正确显示
+    function fixAttributeValue(value) {
+        if (!value) return value;
+        // 针对字符串进行处理
+        return fixUtf8String(value);
+    }
+
+    // 格式化DN (颁发者/主题) 修复中文乱码
+    function formatDN(attrs) {
+        if (!attrs || attrs.length === 0) return "—";
+        const parts = [];
+        const order = ["CN", "O", "OU", "C", "ST", "L", "emailAddress", "DC"];
+        const mapped = new Map();
+        attrs.forEach(attr => {
+            let name = attr.name || attr.type;
+            let rawValue = attr.value || (attr.shortName && attr.value) || "";
+            // 修复中文/UTF-8 乱码
+            let value = fixAttributeValue(rawValue);
+            if (name === "commonName") name = "CN";
+            if (name === "organizationName") name = "O";
+            if (name === "organizationalUnitName") name = "OU";
+            if (name === "countryName") name = "C";
+            if (name === "stateOrProvinceName") name = "ST";
+            if (name === "localityName") name = "L";
+            mapped.set(name, value);
+        });
+        for (let key of order) {
+            if (mapped.has(key)) parts.push(`${key}=${mapped.get(key)}`);
+        }
+        for (let [k, v] of mapped.entries()) {
+            if (!order.includes(k)) parts.push(`${k}=${v}`);
+        }
+        return parts.join(", ") || "—";
+    }
+
+    // 获取证书中某个字段值（如 CN）并修复中文
+    function getFixedSubjectField(cert, fieldName) {
+        const field = cert.subject.getField(fieldName);
+        if (field && field.value) {
+            return fixAttributeValue(field.value);
+        }
+        return null;
+    }
+
+    // --- DOM 元素 ---
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const selectBtn = document.getElementById('fileSelectBtn');
+    const messageBox = document.getElementById('messageBox');
+    const resultArea = document.getElementById('resultArea');
+
+    // 辅助显示消息
+    function showMessage(msg, isError = false) {
+        messageBox.style.display = 'block';
+        messageBox.innerHTML = msg;
+        messageBox.className = `message-area ${isError ? 'error-msg' : 'info-msg'}`;
+        if (!isError) {
+            setTimeout(() => {
+                if (messageBox.innerHTML === msg) messageBox.style.display = 'none';
+            }, 5000);
+        } else {
+            // 错误不清除太快
+        }
+    }
+
+    function clearMessage() {
+        messageBox.style.display = 'none';
+        messageBox.innerHTML = '';
+    }
+
+    function clearResult() {
+        resultArea.innerHTML = '';
+    }
+
+    function showLoading(show = true) {
+        if (show) {
+            resultArea.innerHTML = '<div class="card" style="text-align:center; padding:2rem;">⏳ 正在解析证书文件，请稍后...</div>';
+        } else {
+            // 保留占位可不做处理
+        }
+    }
+
+    // *******************************************
+    // 核心解析逻辑：接收 ArrayBuffer 和密码，返回解析结果 { certs, privateKeys, pkcs12Obj }
+    // *******************************************
+    async function parseP12(buffer, password) {
+        return new Promise((resolve, reject) => {
+            try {
+                const bytes = new Uint8Array(buffer);
+                const forgeBuffer = forge.util.createBuffer(bytes);
+                const asn1 = forge.asn1.fromDer(forgeBuffer);
+                const pkcs12 = forge.pkcs12.pkcs12FromAsn1(asn1, password, { generateKey: true });
+                
+                const certBags = pkcs12.getBags({ bagType: forge.pki.oids.certBag });
+                let privateKeyBags = pkcs12.getBags({ bagType: forge.pki.oids.keyBag });
+                if (!privateKeyBags[forge.pki.oids.keyBag] || privateKeyBags[forge.pki.oids.keyBag].length === 0) {
+                    const shroudedBags = pkcs12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
+                    if (shroudedBags[forge.pki.oids.pkcs8ShroudedKeyBag] && shroudedBags[forge.pki.oids.pkcs8ShroudedKeyBag].length > 0) {
+                        privateKeyBags = shroudedBags;
+                    }
+                }
+                
+                let certificates = [];
+                if (certBags[forge.pki.oids.certBag]) {
+                    certificates = certBags[forge.pki.oids.certBag].map(bag => bag.cert);
+                }
+                
+                let privateKeys = [];
+                const keyBagType = Object.keys(privateKeyBags)[0] || forge.pki.oids.keyBag;
+                if (privateKeyBags[keyBagType]) {
+                    privateKeys = privateKeyBags[keyBagType].map(bag => bag.key);
+                }
+                
+                resolve({
+                    certificates: certificates,
+                    privateKeys: privateKeys,
+                    pkcs12: pkcs12
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    // 递归重试密码
+    async function askPasswordAndParse(fileBuffer, retry = true) {
+        let password = prompt("🔐 请输入 P12/PFX 文件的密码 (若无密码请直接留空或点击确定):", "");
+        if (password === null) {
+            throw new Error("用户取消输入密码，解析已终止");
+        }
+        try {
+            const result = await parseP12(fileBuffer, password);
+            return result;
+        } catch (err) {
+            console.error("解析失败:", err);
+            const errorMsg = err.message || "未知错误";
+            if (errorMsg.includes("password") || errorMsg.toLowerCase().includes("mac") || errorMsg.includes("PKCS#12")) {
+                const again = confirm(`密码错误或解析失败: ${errorMsg}\n是否重新输入密码再试？`);
+                if (again) {
+                    return await askPasswordAndParse(fileBuffer, true);
+                } else {
+                    throw new Error("用户取消重试，解析失败");
+                }
+            } else {
+                throw new Error(`解析出错: ${errorMsg}`);
+            }
+        }
+    }
+
+    // 格式化时间 (forge时间对象转 readable)
+    function formatForgeDate(dateObj) {
+        if (!dateObj) return "无效";
+        if (typeof dateObj === 'object' && dateObj.getFullYear) {
+            return dateObj.toLocaleString();
+        }
+        return String(dateObj);
+    }
+
+    // 获取证书指纹 SHA-1
+    function getCertFingerprint(cert) {
+        const der = forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes();
+        const md = forge.md.sha1.create();
+        md.update(der);
+        return forge.util.bytesToHex(md.digest().getBytes()).toUpperCase().match(/.{2}/g).join(':');
+    }
+
+    // 获取证书 SHA-256 指纹
+    function getCertFingerprint256(cert) {
+        const der = forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes();
+        const md = forge.md.sha256.create();
+        md.update(der);
+        return forge.util.bytesToHex(md.digest().getBytes()).toUpperCase().match(/.{2}/g).join(':');
+    }
+
+    // 修复扩展值中的字符串 (防止中文乱码)
+    function fixExtensionValue(value) {
+        if (typeof value === 'string') return fixUtf8String(value);
+        if (value && typeof value === 'object') {
+            try {
+                const str = JSON.stringify(value);
+                // 不对整个json做暴力转换，只对字符串属性尝试修复较为复杂，简化为返回原对象
+                return value;
+            } catch(e) { return value; }
+        }
+        return value;
+    }
+
+    // 展示证书扩展(完整) 并修复可能的中文字符串
+    function renderExtensions(extensions) {
+        if (!extensions || extensions.length === 0) return '<div class="extensions-list">无扩展信息</div>';
+        let html = `<div class="extensions-list"><strong>📌 扩展项 (${extensions.length})</strong><div style="margin-top:8px;">`;
+        for (let ext of extensions) {
+            let extName = ext.name || ext.id || "未知扩展";
+            let rawValue = "";
+            try {
+                if (ext.value !== undefined && ext.value !== null) {
+                    if (typeof ext.value === 'object') {
+                        // 尝试序列化时对字符串属性修复, 做简单修复 JSON 中的字符串内容比较麻烦，暂时原样展示
+                        rawValue = JSON.stringify(ext.value, null, 2);
+                    } else {
+                        rawValue = String(ext.value);
+                    }
+                    // 对普通字符串进行乱码修复
+                    if (typeof rawValue === 'string') rawValue = fixUtf8String(rawValue);
+                } else if (ext.critical !== undefined) {
+                    rawValue = `critical: ${ext.critical}`;
+                } else {
+                    rawValue = "—";
+                }
+                if (rawValue.length > 200) rawValue = rawValue.substring(0, 200) + "…(过长已截断)";
+            } catch(e) { rawValue = "无法序列化"; }
+            html += `<div class="ext-item"><strong>${escapeHtml(extName)}</strong><br><span style="font-family:monospace; font-size:0.8rem;">${escapeHtml(rawValue)}</span></div>`;
+        }
+        html += `</div></div>`;
+        return html;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    // 展示单个证书卡片 (所有文本应用中文修复)
+    function renderCertificateCard(cert, index, totalCerts) {
+        const subjectDN = formatDN(cert.subject.attributes);
+        const issuerDN = formatDN(cert.issuer.attributes);
+        const serialNumber = cert.serialNumber ? cert.serialNumber.toUpperCase() : "—";
+        const notBefore = cert.validity.notBefore ? formatForgeDate(cert.validity.notBefore) : "—";
+        const notAfter = cert.validity.notAfter ? formatForgeDate(cert.validity.notAfter) : "—";
+        const sigAlgo = cert.signatureOid || "—";
+        const publicKeyAlgo = cert.publicKey?.type || cert.publicKey?.algorithm || "RSA/EC";
+        let pubKeyBits = "—";
+        if (cert.publicKey && cert.publicKey.n) {
+            pubKeyBits = (cert.publicKey.n.bitLength() || "?").toString() + "位";
+        } else if (cert.publicKey?.keySize) {
+            pubKeyBits = cert.publicKey.keySize + "位";
+        }
+        const fingerprintSha1 = getCertFingerprint(cert);
+        const fingerprintSha256 = getCertFingerprint256(cert);
+        const pemCert = forge.pki.certificateToPem(cert);
+        
+        let extensionsHtml = "";
+        if (cert.extensions && cert.extensions.length) {
+            extensionsHtml = renderExtensions(cert.extensions);
+        } else {
+            extensionsHtml = '<div class="extensions-list">无扩展信息</div>';
+        }
+        
+        // 获取CN用于徽章，并修复中文
+        let cnValue = getFixedSubjectField(cert, 'CN') || getFixedSubjectField(cert, 'commonName') || '';
+        const title = `📄 证书 ${index+1} / ${totalCerts}`;
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <span>${title}</span>
+                    ${cnValue ? `<span class="badge">CN: ${escapeHtml(cnValue)}</span>` : ''}
+                </div>
+                <div class="card-body">
+                    <div class="detail-row"><div class="detail-label">🔖 主题 (Subject)</div><div class="detail-value">${escapeHtml(subjectDN)}</div></div>
+                    <div class="detail-row"><div class="detail-label">🏛️ 颁发者 (Issuer)</div><div class="detail-value">${escapeHtml(issuerDN)}</div></div>
+                    <div class="detail-row"><div class="detail-label">🔢 序列号 (Serial Number)</div><div class="detail-value"><code>${escapeHtml(serialNumber)}</code></div></div>
+                    <div class="detail-row"><div class="detail-label">⏱️ 有效期</div><div class="detail-value">从 ${escapeHtml(notBefore)} 至 ${escapeHtml(notAfter)}</div></div>
+                    <div class="detail-row"><div class="detail-label">⌛ 过期状态</div><div class="detail-value">${isExpired(notAfter) ? '<span style="color:#d97706;">⚠️ 已过期</span>' : '<span style="color:#10b981;">✅ 有效期内</span>'}</div></div>
+                    <div class="detail-row"><div class="detail-label">🔑 公钥算法</div><div class="detail-value">${escapeHtml(publicKeyAlgo)} (${pubKeyBits})</div></div>
+                    <div class="detail-row"><div class="detail-label">✍️ 签名算法</div><div class="detail-value">${escapeHtml(sigAlgo)}</div></div>
+                    <div class="detail-row"><div class="detail-label">🆔 SHA-1 指纹</div><div class="detail-value"><code>${fingerprintSha1}</code></div></div>
+                    <div class="detail-row"><div class="detail-label">🆔 SHA-256 指纹</div><div class="detail-value"><code>${fingerprintSha256}</code></div></div>
+                    <div class="detail-row"><div class="detail-label">🧩 扩展信息</div><div class="detail-value">${extensionsHtml}</div></div>
+                    <div class="detail-row"><div class="detail-label">📜 PEM (证书)</div><div class="detail-value">
+                        <details><summary>🔽 点击查看/复制证书 PEM (长度: ${pemCert.length} 字符)</summary>
+                        <pre class="pre-block" style="max-height:300px; overflow:auto;">${escapeHtml(pemCert)}</pre>
+                        </details>
+                    </div></div>
+                </div>
+            </div>
+        `;
+    }
+    
+    function isExpired(dateString) {
+        if (!dateString) return false;
+        try {
+            const expireDate = new Date(dateString);
+            return expireDate < new Date();
+        } catch(e) { return false; }
+    }
+    
+    function renderPrivateKeys(privateKeys) {
+        if (!privateKeys || privateKeys.length === 0) {
+            return `<div class="card"><div class="card-header">🔒 私钥信息</div><div class="card-body"><div class="detail-value">此 .p12 文件中未找到私钥 (可能只包含证书)</div></div></div>`;
+        }
+        let keysHtml = '';
+        for (let i = 0; i < privateKeys.length; i++) {
+            const key = privateKeys[i];
+            let pemKey = "";
+            let keyType = "未知密钥";
+            let keyBits = "";
+            try {
+                if (forge.pki.privateKeyToPem) {
+                    pemKey = forge.pki.privateKeyToPem(key);
+                } else {
+                    pemKey = "无法转换私钥为PEM";
+                }
+                if (key.type === 'RSA') {
+                    keyType = "RSA 私钥";
+                    if (key.n) keyBits = key.n.bitLength() + "位";
+                } else if (key.type === 'EC') {
+                    keyType = "EC 私钥 (椭圆曲线)";
+                    keyBits = key.curveName || "secp256r1?";
+                } else {
+                    keyType = key.type || "私钥";
+                }
+            } catch(e) { pemKey = "私钥转PEM失败"; }
+            
+            keysHtml += `
+                <div class="card" style="margin-top: 0;">
+                    <div class="card-header">🔐 ${keyType} ${keyBits ? `(${keyBits})` : ''} ${privateKeys.length > 1 ? `#${i+1}` : ''}</div>
+                    <div class="card-body">
+                        <details open>
+                            <summary><strong>📎 私钥详情 (PEM 格式，内容较长已折叠)</strong></summary>
+                            <pre class="pre-block" style="max-height:400px; overflow:auto; margin-top:12px;">${escapeHtml(pemKey)}</pre>
+                        </details>
+                        <div class="detail-row" style="margin-top:12px;"><div class="detail-label">💡 提示</div><div class="detail-value">该私钥与某个证书配对使用，请妥善保管。</div></div>
+                    </div>
+                </div>
+            `;
+        }
+        return keysHtml;
+    }
+
+    // 主控流程：处理文件
+    async function processP12File(file) {
+        if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'p12' && ext !== 'pfx') {
+            if (!confirm("文件扩展名不是 .p12 或 .pfx，仍尝试解析吗？")) return;
+        }
+        clearResult();
+        showLoading(true);
+        clearMessage();
+        
+        try {
+            const buffer = await readFileAsArrayBuffer(file);
+            const result = await askPasswordAndParse(buffer);
+            const { certificates, privateKeys } = result;
+            
+            if ((!certificates || certificates.length === 0) && (!privateKeys || privateKeys.length === 0)) {
+                throw new Error("未找到任何证书或私钥，请确认文件有效且密码正确。");
+            }
+            
+            let finalHtml = '';
+            if (certificates && certificates.length) {
+                finalHtml += `<div style="margin-bottom: 1rem;"><h3 style="font-size:1.4rem;">📋 证书信息 (共 ${certificates.length} 张)</h3></div>`;
+                for (let i = 0; i < certificates.length; i++) {
+                    finalHtml += renderCertificateCard(certificates[i], i, certificates.length);
+                }
+            } else {
+                finalHtml += `<div class="card"><div class="card-body">⚠️ 未找到任何 X.509 证书。</div></div>`;
+            }
+            
+            finalHtml += `<div style="margin: 2rem 0 1rem 0;"><h3 style="font-size:1.4rem;">🔏 私钥信息</h3></div>`;
+            finalHtml += renderPrivateKeys(privateKeys);
+            
+            resultArea.innerHTML = finalHtml;
+            showMessage(`✅ 解析成功！共发现 ${certificates.length} 个证书, ${privateKeys.length} 个私钥。内容已正确还原。`, false);
+        } catch (err) {
+            console.error(err);
+            showLoading(false);
+            resultArea.innerHTML = `<div class="card"><div class="card-body" style="color:#b91c1c;">❌ 解析失败: ${escapeHtml(err.message)}<br><br>请检查文件是否为有效 PKCS#12 格式，密码是否正确。</div></div>`;
+            showMessage(`错误: ${err.message}`, true);
+        } finally {
+        }
+    }
+    
+    function readFileAsArrayBuffer(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error("文件读取失败"));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+    
+    // ---- 拖拽与上传事件绑定 ----
+    function handleFile(file) {
+        processP12File(file);
+    }
+    
+    selectBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            handleFile(e.target.files[0]);
+        }
+        fileInput.value = '';
+    });
+    
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('drag-over');
+    });
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+    dropzone.addEventListener('click', (e) => {
+        if (e.target === selectBtn || e.target.closest('#fileSelectBtn')) return;
+        fileInput.click();
+    });
+</script>
+</body>
+</html>
