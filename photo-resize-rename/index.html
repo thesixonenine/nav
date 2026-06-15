@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摄像头拍照与压缩重命名</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eaeaea;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .button-section {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+            gap: 15px;
+        }
+        
+        .camera-btn {
+            flex: 1;
+            min-width: 180px;
+            padding: 18px 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .camera-btn i {
+            font-size: 1.8rem;
+        }
+        
+        .btn-1 {
+            background: linear-gradient(to right, #3498db, #2980b9);
+        }
+        
+        .btn-1:hover {
+            background: linear-gradient(to right, #2980b9, #1f639b);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-2 {
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+        }
+        
+        .btn-2:hover {
+            background: linear-gradient(to right, #27ae60, #219653);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
+        }
+        
+        .btn-3 {
+            background: linear-gradient(to right, #9b59b6, #8e44ad);
+        }
+        
+        .btn-3:hover {
+            background: linear-gradient(to right, #8e44ad, #7d3c98);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(155, 89, 182, 0.3);
+        }
+        
+        .camera-section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #000;
+        }
+        
+        #cameraFeed {
+            width: 100%;
+            display: block;
+        }
+        
+        .camera-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .control-btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .capture-btn {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        .capture-btn:hover {
+            background: linear-gradient(to right, #c0392b, #a93226);
+            transform: scale(1.05);
+        }
+        
+        .retake-btn {
+            background: #f1c40f;
+            color: #333;
+        }
+        
+        .retake-btn:hover {
+            background: #f39c12;
+            transform: scale(1.05);
+        }
+        
+        .close-btn {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .close-btn:hover {
+            background: #7f8c8d;
+            transform: scale(1.05);
+        }
+        
+        .preview-section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .preview-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .photo-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            width: 300px;
+            text-align: center;
+        }
+        
+        .photo-card img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .photo-info {
+            text-align: left;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        
+        .photo-info strong {
+            color: #2c3e50;
+        }
+        
+        .instructions {
+            background-color: #e8f4fc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        .instructions h3 {
+            color: #2980b9;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid #eaeaea;
+            width: 100%;
+        }
+        
+        @media (max-width: 768px) {
+            .button-section {
+                flex-direction: column;
+            }
+            
+            .camera-btn {
+                min-width: 100%;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-camera"></i> 智能拍照与压缩工具</h1>
+            <p class="subtitle">点击下方任意按钮调用摄像头，拍照后自动压缩并以按钮名称重命名</p>
+        </header>
+        
+        <div class="button-section">
+            <button class="camera-btn btn-1" data-name="产品正面照">
+                <i class="fas fa-cube"></i>
+                <span>产品正面照</span>
+            </button>
+            <button class="camera-btn btn-2" data-name="产品侧面照">
+                <i class="fas fa-box-open"></i>
+                <span>产品侧面照</span>
+            </button>
+            <button class="camera-btn btn-3" data-name="产品细节照">
+                <i class="fas fa-search"></i>
+                <span>产品细节照</span>
+            </button>
+        </div>
+        
+        <div class="camera-section" id="cameraSection">
+            <h2 id="cameraTitle">产品正面照 - 摄像头</h2>
+            <div class="camera-container">
+                <video id="cameraFeed" autoplay playsinline></video>
+            </div>
+            <div class="camera-controls">
+                <button class="control-btn capture-btn" id="captureBtn">
+                    <i class="fas fa-camera"></i> 拍照
+                </button>
+                <button class="control-btn retake-btn" id="retakeBtn">
+                    <i class="fas fa-redo"></i> 重新拍照
+                </button>
+                <button class="control-btn close-btn" id="closeCameraBtn">
+                    <i class="fas fa-times"></i> 关闭摄像头
+                </button>
+            </div>
+        </div>
+        
+        <div class="preview-section" id="previewSection">
+            <h2 class="preview-title">照片预览</h2>
+            <div class="preview-container" id="previewContainer">
+                <!-- 照片预览将动态添加到这里 -->
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3><i class="fas fa-info-circle"></i> 使用说明</h3>
+            <ul>
+                <li>点击上方任意按钮调用摄像头进行拍照</li>
+                <li>拍照后图片会自动压缩到原大小的30%以节省空间</li>
+                <li>图片会自动以按钮名称重命名并添加时间戳</li>
+                <li>所有拍摄的照片都会显示在下方预览区域</li>
+                <li>点击照片可以下载到本地设备</li>
+                <li>需要允许浏览器访问摄像头权限</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p>© 2023 智能拍照工具 | 支持 Chrome, Edge, Firefox 等现代浏览器</p>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentStream = null;
+        let currentButtonName = '';
+        let capturedPhotos = [];
+        
+        // DOM元素
+        const cameraSection = document.getElementById('cameraSection');
+        const previewSection = document.getElementById('previewSection');
+        const cameraFeed = document.getElementById('cameraFeed');
+        const cameraTitle = document.getElementById('cameraTitle');
+        const previewContainer = document.getElementById('previewContainer');
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const closeCameraBtn = document.getElementById('closeCameraBtn');
+        
+        // 三个拍照按钮
+        const cameraButtons = document.querySelectorAll('.camera-btn');
+        
+        // 初始化事件监听
+        function initEventListeners() {
+            // 为每个拍照按钮添加点击事件
+            cameraButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    currentButtonName = button.getAttribute('data-name');
+                    cameraTitle.textContent = `${currentButtonName} - 摄像头`;
+                    openCamera();
+                });
+            });
+            
+            // 拍照按钮
+            captureBtn.addEventListener('click', capturePhoto);
+            
+            // 重新拍照按钮
+            retakeBtn.addEventListener('click', () => {
+                // 重新显示摄像头
+                cameraFeed.style.display = 'block';
+                captureBtn.disabled = false;
+                retakeBtn.style.display = 'none';
+            });
+            
+            // 关闭摄像头按钮
+            closeCameraBtn.addEventListener('click', closeCamera);
+        }
+        
+        // 打开摄像头
+        async function openCamera() {
+            try {
+                // 先关闭之前的摄像头流
+                if (currentStream) {
+                    closeCamera();
+                }
+                
+                // 请求摄像头权限
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment' 
+                    },
+                    audio: false
+                });
+                
+                currentStream = stream;
+                cameraFeed.srcObject = stream;
+                
+                // 显示摄像头区域
+                cameraSection.style.display = 'flex';
+                previewSection.style.display = 'none';
+                
+                // 滚动到摄像头区域
+                cameraSection.scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('摄像头访问错误:', error);
+                alert('无法访问摄像头。请确保已授予摄像头权限，并且摄像头正常工作。');
+            }
+        }
+        
+        // 拍照功能
+        function capturePhoto() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            // 设置canvas尺寸与视频相同
+            canvas.width = cameraFeed.videoWidth;
+            canvas.height = cameraFeed.videoHeight;
+            
+            // 将视频帧绘制到canvas上
+            context.drawImage(cameraFeed, 0, 0, canvas.width, canvas.height);
+            
+            // 隐藏视频流，显示拍照结果
+            cameraFeed.style.display = 'none';
+            captureBtn.disabled = true;
+            retakeBtn.style.display = 'flex';
+            
+            // 压缩图片（压缩到原质量的30%）
+            canvas.toBlob(blob => {
+                // 生成文件名：按钮名称 + 时间戳
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const fileName = `${currentButtonName}_${timestamp}.jpg`;
+                
+                // 创建图片URL
+                const imageUrl = URL.createObjectURL(blob);
+                
+                // 保存照片信息
+                const photoInfo = {
+                    name: fileName,
+                    url: imageUrl,
+                    size: blob.size,
+                    date: new Date().toLocaleString(),
+                    buttonName: currentButtonName
+                };
+                
+                capturedPhotos.unshift(photoInfo); // 添加到数组开头
+                updatePreview();
+                
+                // 显示预览区域
+                previewSection.style.display = 'flex';
+                
+                // 自动滚动到预览区域
+                previewSection.scrollIntoView({ behavior: 'smooth' });
+                
+            }, 'image/jpeg', 0.3); // 0.3表示30%质量
+        }
+        
+        // 更新预览区域
+        function updatePreview() {
+            previewContainer.innerHTML = '';
+            
+            // 只显示最近拍摄的6张照片
+            const recentPhotos = capturedPhotos.slice(0, 6);
+            
+            recentPhotos.forEach((photo, index) => {
+                const photoCard = document.createElement('div');
+                photoCard.className = 'photo-card';
+                
+                // 将文件大小转换为可读格式
+                const fileSize = (photo.size / 1024).toFixed(2);
+                
+                photoCard.innerHTML = `
+                    <img src="${photo.url}" alt="${photo.name}" onclick="downloadPhoto(${index})" style="cursor:pointer;">
+                    <div class="photo-info">
+                        <p><strong>文件名：</strong>${photo.name}</p>
+                        <p><strong>来源按钮：</strong>${photo.buttonName}</p>
+                        <p><strong>文件大小：</strong>${fileSize} KB</p>
+                        <p><strong>拍摄时间：</strong>${photo.date}</p>
+                        <p style="color:#3498db; text-align:center; margin-top:10px; font-weight:bold;">
+                            <i class="fas fa-download"></i> 点击图片下载
+                        </p>
+                    </div>
+                `;
+                
+                previewContainer.appendChild(photoCard);
+            });
+        }
+        
+        // 下载照片
+        function downloadPhoto(index) {
+            const photo = capturedPhotos[index];
+            const link = document.createElement('a');
+            link.href = photo.url;
+            link.download = photo.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 关闭摄像头
+        function closeCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            
+            cameraSection.style.display = 'none';
+            previewSection.style.display = 'flex';
+            
+            // 如果还没有照片，隐藏预览区域
+            if (capturedPhotos.length === 0) {
+                previewSection.style.display = 'none';
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initEventListeners();
+            
+            // 显示提示信息
+            setTimeout(() => {
+                alert("欢迎使用智能拍照工具！\n\n请点击上方三个按钮之一开始拍照。\n首次使用需要授权摄像头访问权限。");
+            }, 500);
+        });
+    </script>
+</body>
+</html>
