@@ -5,3 +5,4 @@ compatibility_date = "2026-06-17"
 assets = { directory = "./" }
 
 workers_dev = false
+send_metrics = false
