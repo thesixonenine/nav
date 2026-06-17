@@ -30,6 +30,7 @@ export default {
     // 4. 构建请求 GitHub API 的数据
     // 默认触发分支为 main，如果请求中带了 ref 参数则使用指定的 ref
     const ref = inputs['ref'] || 'main';
+    delete inputs['ref'];
 
     const githubApiUrl = `https://api.github.com/repos/${uuu}/${aaa}/actions/workflows/${bbb}/dispatches`;
 
