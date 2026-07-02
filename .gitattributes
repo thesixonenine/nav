@@ -1,9 +1,12 @@
 * text=auto
 
 *.js text eol=lf
+*.css text eol=lf
 *.html text eol=lf
 *.toml text eol=lf
 *.md text eol=lf
 
 *.ico binary
+*.jpg binary
+*.png binary
 
