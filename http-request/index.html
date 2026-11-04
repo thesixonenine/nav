@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTTP 请求测试工具</title>
+<link rel="shortcut icon" href="../favicon.ico">
+<style>
+:root {
+    --bg-color: #f5f7fa;
+    --card-bg: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #dbe2ea;
+    --input-bg: #ffffff;
+    --code-bg: #f8fafc;
+    --btn-bg: #1677ff;
+    --btn-bg-hover: #0e5fd8;
+    --accent-color: #1677ff;
+    --ok-color: #15803d;
+    --warn-color: #b45309;
+    --err-color: #b91c1c;
+    --shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #0f172a;
+        --card-bg: #1e293b;
+        --text-main: #e2e8f0;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+        --input-bg: #0f172a;
+        --code-bg: #111c30;
+        --btn-bg: #2563eb;
+        --btn-bg-hover: #1d4ed8;
+        --accent-color: #60a5fa;
+        --ok-color: #4ade80;
+        --warn-color: #fbbf24;
+        --err-color: #f87171;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 28px 20px 48px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-main);
+    background-color: var(--bg-color);
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+header h1 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+header p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.token-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--border-color);
+    font-size: 13px;
+}
+
+.token-status {
+    color: var(--text-muted);
+}
+
+.token-form {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+    min-width: 220px;
+}
+
+.token-form[hidden] {
+    display: none;
+}
+
+#tokenInput {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 9px;
+    font-size: 13px;
+}
+
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+    margin-bottom: 16px;
+}
+
+.url-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+select,
+input[type="text"],
+textarea {
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-main);
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 9px 10px;
+}
+
+select:focus,
+input[type="text"]:focus,
+textarea:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: -1px;
+}
+
+#method {
+    flex: 0 0 112px;
+    font-family: Consolas, Monaco, monospace;
+    font-weight: 600;
+}
+
+#url {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: Consolas, Monaco, monospace;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.primary,
+.secondary {
+    flex: none;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-size: 14px;
+    color: #ffffff;
+}
+
+.primary {
+    background-color: var(--btn-bg);
+}
+
+.primary:hover {
+    background-color: var(--btn-bg-hover);
+}
+
+.primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.secondary {
+    background-color: #64748b;
+}
+
+.secondary:hover {
+    background-color: #475569;
+}
+
+.warning {
+    margin-top: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--warn-color);
+    background-color: rgba(180, 83, 9, 0.1);
+    border: 1px solid rgba(180, 83, 9, 0.28);
+    border-radius: 6px;
+}
+
+.section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 18px 0 8px;
+}
+
+.section-head h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+h3 {
+    margin: 18px 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.link-btn {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--accent-color);
+    font-size: 13px;
+}
+
+.link-btn:hover {
+    text-decoration: underline;
+}
+
+.muted-text {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.header-row {
+    display: grid;
+    grid-template-columns: 20px minmax(100px, 1fr) minmax(120px, 1.6fr) 30px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.header-row:last-child {
+    margin-bottom: 0;
+}
+
+.header-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.header-row input[type="text"] {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 9px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+}
+
+.remove-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    line-height: 1;
+}
+
+.remove-btn:hover {
+    color: var(--err-color);
+    background-color: rgba(185, 28, 28, 0.1);
+}
+
+#body {
+    width: 100%;
+    min-height: 150px;
+    resize: vertical;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+}
+
+#body:disabled {
+    opacity: 0.55;
+    background-color: var(--code-bg);
+    cursor: not-allowed;
+}
+
+.response-tools {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.inline-check {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.inline-check input {
+    margin: 0;
+    cursor: pointer;
+}
+
+.status-line {
+    padding: 10px 12px;
+    border-radius: 6px;
+    background-color: var(--code-bg);
+    color: var(--text-muted);
+    font-family: Consolas, Monaco, monospace;
+    font-size: 14px;
+    font-weight: 600;
+    word-break: break-all;
+}
+
+.status-line.ok {
+    color: var(--ok-color);
+    background-color: rgba(21, 128, 61, 0.1);
+}
+
+.status-line.warn {
+    color: var(--warn-color);
+    background-color: rgba(180, 83, 9, 0.1);
+}
+
+.status-line.err {
+    color: var(--err-color);
+    background-color: rgba(185, 28, 28, 0.1);
+}
+
+.response-note {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text-muted);
+}
+
+.header-table {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+}
+
+.header-table-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 32%) minmax(0, 1fr);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-table-row:last-child {
+    border-bottom: none;
+}
+
+.header-table-key {
+    padding: 7px 10px;
+    color: var(--text-muted);
+    background-color: var(--code-bg);
+    border-right: 1px solid var(--border-color);
+    word-break: break-all;
+}
+
+.header-table-value {
+    padding: 7px 10px;
+    word-break: break-all;
+}
+
+.muted-row {
+    padding: 10px;
+    color: var(--text-muted);
+}
+
+.body-view {
+    margin: 0;
+    padding: 12px;
+    min-height: 120px;
+    max-height: 540px;
+    overflow: auto;
+    background-color: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.notes {
+    padding: 0 2px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text-muted);
+}
+
+.notes p {
+    margin: 0 0 6px;
+}
+
+.notes code {
+    padding: 1px 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    background-color: var(--code-bg);
+    font-family: Consolas, Monaco, monospace;
+}
+
+@media (max-width: 560px) {
+    .url-row {
+        flex-wrap: wrap;
+    }
+
+    #url {
+        flex: 1 1 100%;
+        order: -1;
+    }
+
+    .primary,
+    .secondary {
+        flex: 1 1 0;
+    }
+
+    .header-row {
+        grid-template-columns: 20px minmax(0, 1fr) minmax(0, 1.2fr) 30px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>HTTP 请求测试</h1>
+        <p>请求通过本站 Cloudflare Worker 代理发送，不受浏览器跨域限制</p>
+    </header>
+
+    <section class="card">
+        <div class="token-bar">
+            <span id="tokenStatus" class="token-status">访问口令：</span>
+            <div id="tokenForm" class="token-form">
+                <input id="tokenInput" type="password" placeholder="输入访问口令" autocomplete="off" spellcheck="false">
+                <button id="saveTokenBtn" class="link-btn" type="button">保存</button>
+            </div>
+            <button id="editTokenBtn" class="link-btn" type="button" hidden>修改口令</button>
+        </div>
+
+        <div class="url-row">
+            <select id="method" aria-label="请求方法">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="TRACE">TRACE</option>
+                <option value="HEAD">HEAD</option>
+                <option value="OPTIONS">OPTIONS</option>
+            </select>
+            <input id="url" type="text" spellcheck="false" autocomplete="off"
+                   placeholder="https://httpbin.org/get" aria-label="请求地址">
+            <button id="sendBtn" class="primary" type="button">发送</button>
+            <button id="cancelBtn" class="secondary" type="button" hidden>取消</button>
+        </div>
+        <div id="methodWarning" class="warning" hidden></div>
+
+        <div class="section-head">
+            <h2>请求头</h2>
+            <button id="addHeaderBtn" class="link-btn" type="button">+ 添加 Header</button>
+        </div>
+        <div id="headers"></div>
+
+        <div class="section-head">
+            <h2>请求体</h2>
+            <span id="bodyHint" class="muted-text"></span>
+        </div>
+        <textarea id="body" spellcheck="false" placeholder='{"key": "value"}'></textarea>
+    </section>
+
+    <section class="card">
+        <div class="section-head">
+            <h2>响应</h2>
+            <div class="response-tools">
+                <label class="inline-check">
+                    <input type="checkbox" id="prettyJson" checked> 格式化 JSON
+                </label>
+                <button id="copyBodyBtn" class="link-btn" type="button">复制响应体</button>
+            </div>
+        </div>
+        <div id="statusLine" class="status-line">尚未发送请求</div>
+        <div id="respNote" class="response-note" hidden></div>
+
+        <h3>响应头</h3>
+        <div id="respHeaders" class="header-table">
+            <div class="muted-row">发送请求后显示</div>
+        </div>
+
+        <h3>响应体</h3>
+        <pre id="respBody" class="body-view">—</pre>
+    </section>
+
+    <div class="notes">
+        <p>请求由本站 Cloudflare Worker 代理发出，目标服务器看到的是 Cloudflare 出口 IP，而不是你的本机 IP；浏览器中的登录 Cookie 不会被自动转发，需要时请手动添加请求头。</p>
+        <p>受 Cloudflare Workers 限制：仅支持 http/https 域名与 80/443 端口（不支持直接使用 IP），不支持流式响应和大文件；响应体超过 1 MB 会被拒绝，非 UTF-8 文本可能显示乱码。</p>
+        <p>访问口令仅保存在本机 localStorage，不会显示在页面上；发送时口令会出现在浏览器开发者工具的网络面板中，请勿在公共电脑使用，也不要与其他人共享。</p>
+    </div>
+</div>
+
+<script>
+const methodSelect = document.getElementById('method');
+const urlInput = document.getElementById('url');
+const sendBtn = document.getElementById('sendBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const addHeaderBtn = document.getElementById('addHeaderBtn');
+const headersWrap = document.getElementById('headers');
+const bodyInput = document.getElementById('body');
+const bodyHint = document.getElementById('bodyHint');
+const methodWarning = document.getElementById('methodWarning');
+const statusLine = document.getElementById('statusLine');
+const respNote = document.getElementById('respNote');
+const respHeaders = document.getElementById('respHeaders');
+const respBody = document.getElementById('respBody');
+const prettyToggle = document.getElementById('prettyJson');
+const copyBodyBtn = document.getElementById('copyBodyBtn');
+const tokenStatus = document.getElementById('tokenStatus');
+const tokenForm = document.getElementById('tokenForm');
+const tokenInput = document.getElementById('tokenInput');
+const saveTokenBtn = document.getElementById('saveTokenBtn');
+const editTokenBtn = document.getElementById('editTokenBtn');
+
+const NO_BODY_METHODS = ['GET', 'HEAD', 'TRACE'];
+const TOKEN_STORAGE_KEY = 'nav-http-proxy-token';
+const PROXY_TOKEN_HEADER = 'X-Proxy-Token';
+const PROXY_URL = new URL('./proxy', location.href).href;
+
+let abortController = null;
+let requestStart = 0;
+let rawResponseBody = '';
+let lastResponseBinary = false;
+
+function addHeaderRow(name, value, enabled) {
+    const row = document.createElement('div');
+    row.className = 'header-row';
+
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.className = 'header-enabled';
+    check.checked = enabled !== false;
+    check.title = '是否发送该请求头';
+
+    const key = document.createElement('input');
+    key.type = 'text';
+    key.className = 'header-key';
+    key.placeholder = 'Header 名，如 Authorization';
+    key.spellcheck = false;
+    key.value = name || '';
+
+    const val = document.createElement('input');
+    val.type = 'text';
+    val.className = 'header-value';
+    val.placeholder = 'Header 值';
+    val.spellcheck = false;
+    val.value = value || '';
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-btn';
+    remove.textContent = '×';
+    remove.title = '删除该请求头';
+    remove.addEventListener('click', function () {
+        row.remove();
+    });
+
+    row.append(check, key, val, remove);
+    headersWrap.appendChild(row);
+}
+
+function collectHeaderPairs() {
+    const pairs = [];
+    headersWrap.querySelectorAll('.header-row').forEach(function (row) {
+        if (!row.querySelector('.header-enabled').checked) return;
+        const key = row.querySelector('.header-key').value.trim();
+        if (!key) return;
+        pairs.push([key, row.querySelector('.header-value').value]);
+    });
+    return pairs;
+}
+
+function getStoredToken() {
+    try {
+        return localStorage.getItem(TOKEN_STORAGE_KEY) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function clearStoredToken() {
+    try {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+    } catch (e) {
+        // localStorage 不可用时忽略
+    }
+}
+
+function updateTokenUI() {
+    const hasToken = !!getStoredToken();
+    tokenStatus.textContent = hasToken ? '访问口令已设置（仅保存在本机浏览器）' : '访问口令：';
+    tokenForm.hidden = hasToken;
+    editTokenBtn.hidden = !hasToken;
+}
+
+function showTokenForm(message) {
+    tokenStatus.textContent = message || '输入新的访问口令：';
+    tokenForm.hidden = false;
+    editTokenBtn.hidden = true;
+    tokenInput.value = '';
+    tokenInput.focus();
+}
+
+function updateMethodState() {
+    const method = methodSelect.value;
+    const noBody = NO_BODY_METHODS.indexOf(method) !== -1;
+
+    bodyInput.disabled = noBody;
+    bodyInput.placeholder = noBody ? '该请求方法不能携带请求体' : '{"key": "value"}';
+    bodyHint.textContent = noBody ? method + ' 请求不能携带请求体' : '支持 JSON / XML / 表单等任意文本';
+
+    if (method === 'TRACE') {
+        methodWarning.hidden = false;
+        methodWarning.textContent = 'TRACE 由 Worker 代发，浏览器不再限制；目标服务器可能不支持该方法并返回 405。';
+    } else {
+        methodWarning.hidden = true;
+        methodWarning.textContent = '';
+    }
+}
+
+function setLoading(loading) {
+    sendBtn.disabled = loading;
+    sendBtn.textContent = loading ? '请求中…' : '发送';
+    cancelBtn.hidden = !loading;
+}
+
+function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+function renderBody() {
+    if (!rawResponseBody) {
+        respBody.textContent = '（空响应体）';
+        return;
+    }
+
+    if (prettyToggle.checked) {
+        const trimmed = rawResponseBody.trim();
+        if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
+            try {
+                respBody.textContent = JSON.stringify(JSON.parse(trimmed), null, 2);
+                return;
+            } catch (e) {
+                // 不是合法 JSON，按原始文本展示
+            }
+        }
+    }
+
+    respBody.textContent = rawResponseBody;
+}
+
+function renderProxyResponse(data) {
+    rawResponseBody = typeof data.body === 'string' ? data.body : '';
+    lastResponseBinary = !!data.binary;
+
+    const status = Number(data.status) || 0;
+    let cls = 'err';
+    if (status >= 200 && status < 300) cls = 'ok';
+    else if (status >= 300 && status < 400) cls = 'warn';
+
+    statusLine.className = 'status-line ' + cls;
+    statusLine.textContent = status + ' ' + (data.statusText || '') +
+        ' · ' + (Number(data.elapsed) || 0) + ' ms · ' + formatBytes(Number(data.size) || 0);
+
+    const notes = [];
+    if (data.redirected && data.url) {
+        notes.push('已跟随重定向，最终 URL：' + data.url);
+    }
+    if (data.binary) {
+        notes.push('目标返回二进制内容，未以文本展示。');
+    }
+    respNote.hidden = notes.length === 0;
+    respNote.textContent = notes.join(' ');
+
+    respHeaders.textContent = '';
+    const headerList = Array.isArray(data.headers) ? data.headers : [];
+
+    headerList.forEach(function (item) {
+        if (!Array.isArray(item) || item.length < 2) return;
+
+        const row = document.createElement('div');
+        row.className = 'header-table-row';
+
+        const keyCell = document.createElement('div');
+        keyCell.className = 'header-table-key';
+        keyCell.textContent = String(item[0]);
+
+        const valueCell = document.createElement('div');
+        valueCell.className = 'header-table-value';
+        valueCell.textContent = String(item[1]);
+
+        row.append(keyCell, valueCell);
+        respHeaders.appendChild(row);
+    });
+
+    if (headerList.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'muted-row';
+        empty.textContent = '（目标未返回响应头）';
+        respHeaders.appendChild(empty);
+    }
+
+    if (data.binary) {
+        respBody.textContent = '（二进制响应，共 ' + formatBytes(Number(data.size) || 0) + '，暂不支持以文本展示）';
+    } else {
+        renderBody();
+    }
+}
+
+function showRequestError(message, detail) {
+    rawResponseBody = '';
+    lastResponseBinary = false;
+    statusLine.className = 'status-line err';
+    statusLine.textContent = message;
+
+    respNote.hidden = !detail;
+    respNote.textContent = detail || '';
+
+    respHeaders.textContent = '';
+    const empty = document.createElement('div');
+    empty.className = 'muted-row';
+    empty.textContent = '（无响应头）';
+    respHeaders.appendChild(empty);
+    respBody.textContent = '—';
+}
+
+async function sendRequest() {
+    if (abortController) return;
+
+    if (location.protocol === 'file:') {
+        statusLine.className = 'status-line warn';
+        statusLine.textContent = '请通过部署后的站点访问，file:// 无法调用代理接口';
+        return;
+    }
+
+    const token = getStoredToken();
+    if (!token) {
+        statusLine.className = 'status-line warn';
+        statusLine.textContent = '请先设置访问口令';
+        showTokenForm('请先设置访问口令：');
+        return;
+    }
+
+    const rawUrl = urlInput.value.trim();
+    if (!rawUrl) {
+        statusLine.className = 'status-line warn';
+        statusLine.textContent = '请先填写请求 URL';
+        urlInput.focus();
+        return;
+    }
+
+    let target;
+    try {
+        target = new URL(rawUrl);
+    } catch (e) {
+        statusLine.className = 'status-line warn';
+        statusLine.textContent = 'URL 格式不合法，请填写完整地址（含 http:// 或 https://）';
+        return;
+    }
+
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+        statusLine.className = 'status-line warn';
+        statusLine.textContent = '仅支持 http:// 或 https:// 地址';
+        return;
+    }
+
+    const method = methodSelect.value;
+    const noBody = NO_BODY_METHODS.indexOf(method) !== -1;
+    const body = noBody || bodyInput.value === '' ? null : bodyInput.value;
+
+    abortController = new AbortController();
+    setLoading(true);
+    statusLine.className = 'status-line';
+    statusLine.textContent = '请求中…';
+    respNote.hidden = true;
+    requestStart = performance.now();
+
+    try {
+        const response = await fetch(PROXY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [PROXY_TOKEN_HEADER]: token
+            },
+            body: JSON.stringify({
+                url: target.href,
+                method: method,
+                headers: collectHeaderPairs(),
+                body: body
+            }),
+            signal: abortController.signal,
+            cache: 'no-store'
+        });
+
+        let data = null;
+        try {
+            data = await response.json();
+        } catch (e) {
+            // 下面统一处理
+        }
+
+        if (!data || typeof data !== 'object') {
+            showRequestError(
+                '代理返回了无法解析的响应（HTTP ' + response.status + '）',
+                '请确认 Worker 中已部署 /http-request/proxy 路由。'
+            );
+            return;
+        }
+
+        if (response.status === 401) {
+            clearStoredToken();
+            showRequestError(data.error || '访问口令错误或缺失', '请重新输入口令后再发送。');
+            showTokenForm('口令错误，请重新输入：');
+            return;
+        }
+
+        if (!response.ok || data.ok !== true) {
+            showRequestError(data.error || ('代理请求失败（HTTP ' + response.status + '）'));
+            return;
+        }
+
+        renderProxyResponse(data);
+    } catch (err) {
+        const elapsed = Math.round(performance.now() - requestStart);
+
+        if (err.name === 'AbortError') {
+            showRequestError('请求已取消（' + elapsed + ' ms）');
+        } else {
+            showRequestError(
+                '无法连接代理（' + elapsed + ' ms）：' + (err.message || err),
+                '请确认代理接口已部署，且当前页面与 Worker 同源。'
+            );
+        }
+    } finally {
+        abortController = null;
+        setLoading(false);
+    }
+}
+
+sendBtn.addEventListener('click', sendRequest);
+
+cancelBtn.addEventListener('click', function () {
+    if (abortController) abortController.abort();
+});
+
+addHeaderBtn.addEventListener('click', function () {
+    addHeaderRow('', '', true);
+});
+
+saveTokenBtn.addEventListener('click', function () {
+    const value = tokenInput.value.trim();
+    if (!value) {
+        statusLine.className = 'status-line warn';
+        statusLine.textContent = '访问口令不能为空';
+        tokenInput.focus();
+        return;
+    }
+
+    try {
+        localStorage.setItem(TOKEN_STORAGE_KEY, value);
+    } catch (e) {
+        statusLine.className = 'status-line err';
+        statusLine.textContent = '无法保存访问口令：浏览器禁止了本地存储';
+        return;
+    }
+
+    tokenInput.value = '';
+    updateTokenUI();
+    statusLine.className = 'status-line';
+    statusLine.textContent = '访问口令已保存';
+});
+
+editTokenBtn.addEventListener('click', function () {
+    showTokenForm('输入新的访问口令：');
+});
+
+tokenInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        saveTokenBtn.click();
+    }
+});
+
+methodSelect.addEventListener('change', updateMethodState);
+
+prettyToggle.addEventListener('change', function () {
+    if (!lastResponseBinary) renderBody();
+});
+
+urlInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        sendRequest();
+    }
+});
+
+bodyInput.addEventListener('keydown', function (event) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        sendRequest();
+    }
+});
+
+copyBodyBtn.addEventListener('click', async function () {
+    if (!rawResponseBody) return;
+
+    try {
+        await navigator.clipboard.writeText(rawResponseBody);
+        copyBodyBtn.textContent = '已复制';
+    } catch (e) {
+        copyBodyBtn.textContent = '复制失败';
+    }
+
+    setTimeout(function () {
+        copyBodyBtn.textContent = '复制响应体';
+    }, 1200);
+});
+
+addHeaderRow('Content-Type', 'application/json', true);
+updateMethodState();
+updateTokenUI();
+
+if (location.protocol === 'file:') {
+    statusLine.className = 'status-line warn';
+    statusLine.textContent = '请通过部署后的站点访问，file:// 无法调用代理接口';
+}
+</script>
+</body>
+</html>
