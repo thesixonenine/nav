@@ -225,7 +225,12 @@
 
             var title = document.querySelector('header h1');
             if (title) {
+                // 双击时浏览器会自动选中文字，阻止第二次按下时的默认选中行为
+                title.addEventListener('mousedown', function (e) {
+                    if (e.detail > 1) e.preventDefault();
+                });
                 title.addEventListener('dblclick', function () {
+                    window.getSelection().removeAllRanges();
                     window.open('https://thesixonenine.github.io', '_blank', 'noopener');
                 });
             }
